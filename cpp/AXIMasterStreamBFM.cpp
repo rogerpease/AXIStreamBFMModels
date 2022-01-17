@@ -4,10 +4,21 @@
 using namespace std; 
 
 
-AXIMasterStreamBFM::AXIMasterStreamBFM()
+AXIMasterStreamBFM::AXIMasterStreamBFM(
+           unsigned char * S_AXIS_TVALID,
+           unsigned int  * S_AXIS_TDATA,
+           unsigned char * S_AXIS_TSTRB, // Output 
+           unsigned char * S_AXIS_TLAST, // Slave output 
+           unsigned char * S_AXIS_TREADY)
 { 
    cycleCount = 0; 
    tvalidDropPeriod = 0; 
+   masterName = "Master BFM";
+   this->M_AXIS_TVALID = S_AXIS_TVALID;
+   this->M_AXIS_TDATA  = S_AXIS_TDATA;
+   this->M_AXIS_TSTRB  = S_AXIS_TSTRB; 
+   this->M_AXIS_TLAST  = S_AXIS_TLAST; 
+   this->M_AXIS_TREADY = S_AXIS_TREADY; 
 }   
 
 void AXIMasterStreamBFM::Initialize()
@@ -24,8 +35,8 @@ void AXIMasterStreamBFM::DriveCycle()
 
   bool lastCycleMovedData = (*(this->M_AXIS_TVALID) && lastCycleReady);
 
-  if (DEBUG) cout << "Valid " << (*(this->M_AXIS_TVALID) ? '1' : '0')  << endl; 
-  if (DEBUG) cout << "Ready " << (lastCycleReady ? '1' : '0')  << endl; 
+  if (DEBUG) cout << masterName << " Valid " << (*(this->M_AXIS_TVALID) ? '1' : '0');  
+             cout << " Ready " << (lastCycleReady ? '1' : '0')  << endl; 
    
 
   // New data should always be in StreamCurrentPacket, even if it's impossible to move. 
@@ -53,7 +64,7 @@ void AXIMasterStreamBFM::DriveCycle()
      *(this->M_AXIS_TDATA) = 0; 
      *(this->M_AXIS_TVALID)  = 0; 
      lastCycleHadData = false; 
-     if (DEBUG) cout << "Nothing to transmit" << endl; 
+     if (DEBUG) cout << masterName << "Nothing to transmit" << endl; 
      return; 
   } 
   else if ((lastCycleMovedData) || (!lastCycleHadData))  
@@ -62,7 +73,7 @@ void AXIMasterStreamBFM::DriveCycle()
       if (StreamCurrentPacket.size()) // If we do have it now. 
       {
         *(this->M_AXIS_TDATA) = StreamCurrentPacket[0]; 
-        cout << "Pushed " << *(this->M_AXIS_TDATA)  << endl;
+        cout << masterName << " Pushed " << *(this->M_AXIS_TDATA) << endl;
         StreamCurrentPacket.erase(StreamCurrentPacket.begin()); 
         thisCycleHasData = true; 
       }
@@ -77,7 +88,7 @@ void AXIMasterStreamBFM::DriveCycle()
    {  
      thisCycleHasData = true;
    } 
-   cout << "ThisCycleHasData " << ((thisCycleHasData) ? '1' : '0') << endl;
+   cout << masterName << " ThisCycleHasData " << ((thisCycleHasData) ? '1' : '0') << endl;
   
    // Drop TVALID every N tvalidDropPeriod cycles (unless TREADY set to 0).
    *(this->M_AXIS_TVALID) = (!thisCycleHasData) ? 0 : (tvalidDropPeriod == 0) ? 1 : (cycleCount % tvalidDropPeriod == 0) ? 0 : 1; 
